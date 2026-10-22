@@ -29,7 +29,7 @@
 POEFIXER_PLUGIN_INFO(
     "SkillDPS",
     "Skill DPS",
-    "1.0.2",
+    "1.0.3",
     "Omer Faruk ARPA, POEFixer",
     "Shows the game's own DPS for each skill on your skill-bar icons, plus an optional movable list of every evaluated skill including minions.")
 
