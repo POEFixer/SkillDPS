@@ -29,7 +29,7 @@
 POEFIXER_PLUGIN_INFO(
     "SkillDPS",
     "Skill DPS",
-    "1.0.1",
+    "1.0.2",
     "Omer Faruk ARPA, POEFixer",
     "Shows the game's own DPS for each skill on your skill-bar icons, plus an optional movable list of every evaluated skill including minions.")
 
@@ -127,6 +127,9 @@ public:
         DrawSectionList();
         ImGui::Spacing();
         DrawSectionDiagnostics();
+        ImGui::Spacing();
+        PluginUi::Hint("Originally created by Omer Faruk ARPA. Maintained by POEFixer. GPL-3.0.");
+        ImGui::Spacing();
         ImGui::PopID();
     }
 
@@ -262,12 +265,12 @@ private:
 
     void DrawSectionShow() {
         PluginUi::BeginCard("###show");
-        PluginUi::Heading(ICON_FA_GAUGE_HIGH, "What to show");
-        PluginUi::HelpMarker("The numbers are the game's own skill evaluation, the same ones the\n"
-                             "skills panel shows. The game only evaluates the skill selected in\n"
-                             "the character panel and skills in active use (totems, minions), so\n"
-                             "a skill without a number has not been evaluated yet: select it in\n"
-                             "the character panel or use it once.");
+        PluginUi::Heading(ICON_FA_GAUGE_HIGH, "What to show",
+                          "The numbers are the game's own skill evaluation, the same ones the\n"
+                          "skills panel shows. The game only evaluates the skill selected in\n"
+                          "the character panel and skills in active use (totems, minions), so\n"
+                          "a skill without a number has not been evaluated yet: select it in\n"
+                          "the character panel or use it once.");
         if (PluginUi::Check("Numbers on the skill-bar icons", "icons", &m_settings.showOnIcons,
                             "Shows each skill's DPS on its icon. Skills the game shows as\n"
                             "average damage per hit get a '~' in front."))
@@ -315,9 +318,9 @@ private:
 
     void DrawSectionIcons() {
         PluginUi::BeginCard("###iconsCard");
-        PluginUi::Heading(ICON_FA_FIRE, "Icon numbers");
-        PluginUi::HelpMarker("How the numbers on the skill-bar icons look.\n"
-                             "Dimmed while \"Numbers on the skill-bar icons\" is off.");
+        PluginUi::Heading(ICON_FA_FIRE, "Icon numbers",
+                          "How the numbers on the skill-bar icons look.\n"
+                          "Dimmed while \"Numbers on the skill-bar icons\" is off.");
         ImGui::BeginDisabled(!m_settings.showOnIcons);
         const PluginUi::LabelColumn col({"Size", "Background", "Position", "DPS colour", "Average colour"});
         if (PercentRow(col, "Size", "###labelSize", &m_settings.labelScale, 70, 180,
@@ -345,10 +348,10 @@ private:
 
     void DrawSectionList() {
         PluginUi::BeginCard("###listCard");
-        PluginUi::Heading(ICON_FA_LIST, "DPS list panel");
-        PluginUi::HelpMarker("How the movable DPS list looks. While this tab is open the panel\n"
-                             "can be dragged in game; its place is saved.\n"
-                             "Dimmed while \"DPS list panel\" is off.");
+        PluginUi::Heading(ICON_FA_LIST, "DPS list panel",
+                          "How the movable DPS list looks. While this tab is open the panel\n"
+                          "can be dragged in game; its place is saved.\n"
+                          "Dimmed while \"DPS list panel\" is off.");
         ImGui::BeginDisabled(!m_settings.showList);
         const PluginUi::LabelColumn col({"Size", "Background", "Position"});
         if (PercentRow(col, "Size", "###listSize", &m_settings.listScale, 70, 180,
@@ -371,8 +374,8 @@ private:
     }
 
     void DrawSectionDiagnostics() {
-        PluginUi::BeginCard("###diagCard");
-        m_diagOpen = ImGui::CollapsingHeader(ICON_FA_BUG "  Diagnostics###diag");
+        m_diagOpen = PluginUi::BeginDiagnostics("The skills and skill-bar slots as the plugin reads them, the game's "
+                                                "UI tree and a debug dump.");
         if (m_diagOpen) {
             if (!m_rowsHaveRaw) m_nextRefresh = {};   // fetch the raw stats now, not at the next tick
             SkillDPSUi::DiagnosticsInput in;
@@ -382,8 +385,8 @@ private:
             in.tracker = &m_tracker;
             in.inGame = ctx()->Game.IsInGame();
             SkillDPSUi::DrawDiagnosticsBody(ctx(), in, m_diag, DirectoryPath());
+            PluginUi::EndDiagnostics();
         }
-        PluginUi::EndCard();
     }
 };
 
