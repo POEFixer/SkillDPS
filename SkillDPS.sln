@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkillDPS", "Plugins\SkillDPS\SkillDPS.vcxproj", "{C747F81F-736F-401C-9081-70DBB432A67C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Dbg|x64 = Dbg|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C747F81F-736F-401C-9081-70DBB432A67C}.Dbg|x64.ActiveCfg = Dbg|x64
+		{C747F81F-736F-401C-9081-70DBB432A67C}.Dbg|x64.Build.0 = Dbg|x64
+		{C747F81F-736F-401C-9081-70DBB432A67C}.Release|x64.ActiveCfg = Release|x64
+		{C747F81F-736F-401C-9081-70DBB432A67C}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
