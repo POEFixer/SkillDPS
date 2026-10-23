@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4
+
+- Works with the separate menu window (POEFixer 366): the host hands the plugin the right drawing context for its settings tab and for its overlay.
+- With the menu in a separate window, the skill list can still be dragged and the slot outlines still show while this tab is open.
+- The DPS list panel now has the POEFixer gear menu (POEFixer 366): lock it, take it out of the game onto any screen, reset its position or close it; its place is remembered separately in and out of the game.
+- The "Reset position" button in the settings tab is gone: the panel's gear menu has Reset position.
+
 ## 1.0.3
 
 - Rebuilt with the updated plugin SDK headers (POEFixer 365 adds optional calls for UI control names, stash objects and tabs, wider entity scans and the host automation flag). No change in what the plugin does.

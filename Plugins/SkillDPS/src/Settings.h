@@ -25,7 +25,9 @@ struct Settings {
     LabelPlace labelPlace = LabelPlace::Top;
     ImVec4 dpsColor = ImVec4(1.00f, 0.86f, 0.47f, 1.0f);
     ImVec4 avgColor = ImVec4(0.62f, 0.85f, 1.00f, 1.0f);
-    // DPS list panel
+    // DPS list panel. overlayX/Y: its place from before POEFixer 366, only read now
+    // (they seed the host's window store once and place the panel on an older host);
+    // still loaded and saved unchanged.
     float overlayX = 20.f;
     float overlayY = 300.f;
     float listScale = 1.0f;

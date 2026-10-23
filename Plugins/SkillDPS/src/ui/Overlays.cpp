@@ -1,6 +1,7 @@
 #include "Overlays.h"
 
 #include "../../../../POEFixer/plugin_sdk/PluginUi.h"
+#include "../../../../POEFixer/plugin_sdk/PluginInfoWindow.h"
 
 #include <imgui.h>
 
@@ -36,21 +37,63 @@ void DrawIconLabels(const std::vector<IconLabel>& labels, const SkillDPSConfig::
     }
 }
 
-bool DrawListPanel(const std::vector<ListRow>& rows, SkillDPSConfig::Settings& s, bool movable,
-                   bool forcePosition) {
-    const ImGuiIO& io = ImGui::GetIO();
-    const float em = ImGui::GetFontSize();
-    const ImVec2 maxPos(std::max(0.f, io.DisplaySize.x - em * 3.f), std::max(0.f, io.DisplaySize.y - em * 2.f));
-    const ImVec2 pos(std::floor(std::clamp(s.overlayX, 0.f, maxPos.x)), std::floor(std::clamp(s.overlayY, 0.f, maxPos.y)));
-    // While movable the player's drag owns the position, except right after a
-    // reset: Appearing alone would keep the old place and the moved-check below
-    // would write it back into the settings.
-    ImGui::SetNextWindowPos(pos, (movable && !forcePosition) ? ImGuiCond_Appearing : ImGuiCond_Always);
+// The list panel's contents (the window is open).
+static void DrawListContents(const std::vector<ListRow>& rows, const SkillDPSConfig::Settings& s, bool movable) {
+    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * s.listScale);
 
+    ImGui::TextColored(s.dpsColor, "Skill DPS");
+    if (movable) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("drag to move");
+    }
+
+    // Two measured columns: names, then values right-aligned.
+    float nameW = 0.f, valueW = 0.f;
+    char nameBuf[160];
+    for (const auto& r : rows) {
+        if (r.owner.empty()) std::snprintf(nameBuf, sizeof(nameBuf), "%s", r.name.c_str());
+        else std::snprintf(nameBuf, sizeof(nameBuf), "%s (%s)", r.name.c_str(), r.owner.c_str());
+        nameW = std::max(nameW, ImGui::CalcTextSize(nameBuf).x);
+        valueW = std::max(valueW, ImGui::CalcTextSize(r.value).x);
+    }
+    const float colX = ImGui::GetCursorPosX() + nameW + ImGui::GetStyle().ItemSpacing.x * 2.f;
+
+    if (rows.empty()) {
+        ImGui::TextDisabled("No skill evaluated yet.");
+        ImGui::TextDisabled("Select a skill in the character panel or use it.");
+    }
+    for (const auto& r : rows) {
+        const bool minion = !r.owner.empty();
+        if (minion) std::snprintf(nameBuf, sizeof(nameBuf), "%s (%s)", r.name.c_str(), r.owner.c_str());
+        else std::snprintf(nameBuf, sizeof(nameBuf), "%s", r.name.c_str());
+        const ImVec4 nameColor = minion ? ImVec4(0.62f, 0.80f, 1.0f, 1.0f) : ImVec4(0.92f, 0.92f, 0.92f, 1.0f);
+        ImGui::TextColored(nameColor, "%s", nameBuf);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(colX + valueW - ImGui::CalcTextSize(r.value).x);
+        ImGui::TextColored(r.average ? s.avgColor : s.dpsColor, "%s", r.value);
+    }
+    ImGui::PopFont();
+}
+
+void DrawListPanel(const PluginSDK::OverlayService& overlay, const std::vector<ListRow>& rows,
+                   SkillDPSConfig::Settings& s, bool movable) {
+    const float em = ImGui::GetFontSize();
+
+    // In game the panel is click-through unless the settings tab is open; out of
+    // the game the host drops NoMove / NoInputs (it is always movable there).
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                              ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
                              ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus;
     if (!movable) flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs;
+
+    // The host owns the place; overlayX/Y (the place before POEFixer 366) only seed
+    // its store once.
+    PluginSDK::InfoWindowOptions o;
+    o.id = "list";
+    o.title = nullptr;   // NoDecoration: the gear sits in the top-right corner on hover
+    o.flags = flags;
+    o.defaultPos = ImVec2(20.f, 300.f);
+    o.legacyPos = ImVec2(s.overlayX, s.overlayY);
 
     const float scaled = em * s.listScale;
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, std::round(scaled * 0.4f));
@@ -63,56 +106,12 @@ bool DrawListPanel(const std::vector<ListRow>& rows, SkillDPSConfig::Settings& s
     // (a light theme's disabled text is too dark to read on it).
     ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImVec4(0.62f, 0.62f, 0.64f, 1.f));
 
-    bool moved = false;
-    if (ImGui::Begin("Skill DPS###SkillDPSList", nullptr, flags)) {
-        ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * s.listScale);
-
-        ImGui::TextColored(s.dpsColor, "Skill DPS");
-        if (movable) {
-            ImGui::SameLine();
-            ImGui::TextDisabled("drag to move");
-        }
-
-        // Two measured columns: names, then values right-aligned.
-        float nameW = 0.f, valueW = 0.f;
-        char nameBuf[160];
-        for (const auto& r : rows) {
-            if (r.owner.empty()) std::snprintf(nameBuf, sizeof(nameBuf), "%s", r.name.c_str());
-            else std::snprintf(nameBuf, sizeof(nameBuf), "%s (%s)", r.name.c_str(), r.owner.c_str());
-            nameW = std::max(nameW, ImGui::CalcTextSize(nameBuf).x);
-            valueW = std::max(valueW, ImGui::CalcTextSize(r.value).x);
-        }
-        const float colX = ImGui::GetCursorPosX() + nameW + ImGui::GetStyle().ItemSpacing.x * 2.f;
-
-        if (rows.empty()) {
-            ImGui::TextDisabled("No skill evaluated yet.");
-            ImGui::TextDisabled("Select a skill in the character panel or use it.");
-        }
-        for (const auto& r : rows) {
-            const bool minion = !r.owner.empty();
-            if (minion) std::snprintf(nameBuf, sizeof(nameBuf), "%s (%s)", r.name.c_str(), r.owner.c_str());
-            else std::snprintf(nameBuf, sizeof(nameBuf), "%s", r.name.c_str());
-            const ImVec4 nameColor = minion ? ImVec4(0.62f, 0.80f, 1.0f, 1.0f) : ImVec4(0.92f, 0.92f, 0.92f, 1.0f);
-            ImGui::TextColored(nameColor, "%s", nameBuf);
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(colX + valueW - ImGui::CalcTextSize(r.value).x);
-            ImGui::TextColored(r.average ? s.avgColor : s.dpsColor, "%s", r.value);
-        }
-        ImGui::PopFont();
-
-        if (movable) {
-            const ImVec2 now = ImGui::GetWindowPos();
-            if (std::fabs(now.x - s.overlayX) >= 1.f || std::fabs(now.y - s.overlayY) >= 1.f) {
-                s.overlayX = std::floor(now.x);
-                s.overlayY = std::floor(now.y);
-                moved = true;
-            }
-        }
-    }
-    ImGui::End();
+    {
+        PluginSDK::InfoWindow window(overlay, o, &s.showList);
+        if (window) DrawListContents(rows, s, movable);
+    }   // the window ends here; its style is popped only after it
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(4);
-    return moved;
 }
 
 void DrawSlotOutlines(const std::vector<SkillDPSGame::BarSlot>& slots) {

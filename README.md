@@ -1,8 +1,8 @@
 # Skill DPS
 
-Current version: 1.0.3
+Current version: 1.0.4
 
-Requires POE2Fixer 364 or newer.
+Requires POE2Fixer 366 or newer.
 
 A POEFixer plugin for **Path of Exile 2** that writes the game's own per-skill
 **DPS numbers directly on your skill-bar icons**, so you can watch your damage
@@ -19,7 +19,10 @@ change as you swap gems, supports and gear without opening the character panel.
   cast.
 - **DPS list panel (optional).** A small translucent panel listing every
   evaluated skill, minions' skills included, for numbers that do not fit on
-  the bar. Drag it anywhere while the plugin's settings tab is open.
+  the bar. Drag it anywhere while the plugin's settings tab is open. Hover it
+  for its gear menu (top-right corner, POEFixer 366 or later): lock it, take it
+  out of the game onto any screen, reset its position or close it. Its place is
+  remembered separately in and out of the game.
 
 ### About the numbers
 
@@ -62,7 +65,8 @@ are in game; the same tab changes what is shown.
 |---|---|
 | Size | Text size of the panel (70-180 %). |
 | Background | Opacity of the panel background. |
-| Reset position | Moves the panel back to the left side of the screen. |
+
+The panel's position is reset from its own gear menu (**Reset position**).
 
 **Diagnostics** (collapsed) shows the live skill numbers, the detected bar slots
 (optionally outlined on screen), a UI-tree capture and a button that writes

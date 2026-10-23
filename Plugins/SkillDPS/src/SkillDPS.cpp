@@ -29,7 +29,7 @@
 POEFIXER_PLUGIN_INFO(
     "SkillDPS",
     "Skill DPS",
-    "1.0.3",
+    "1.0.4",
     "Omer Faruk ARPA, POEFixer",
     "Shows the game's own DPS for each skill on your skill-bar icons, plus an optional movable list of every evaluated skill including minions.")
 
@@ -76,12 +76,16 @@ public:
     }
 
     void DrawUI() override {
+        ++m_uiTick;   // one DrawUI per host loop iteration
         if (!m_loaded) return;
         BindImGui();
         const auto now = Clock::now();
         if (m_dirty && now - m_dirtySince > std::chrono::seconds(1)) SaveSettings();
 
-        const bool settingsOpen = ImGui::GetFrameCount() - m_settingsFrame <= 1;
+        // Settings drawn in this loop iteration or the previous one (the menu is
+        // built before the overlay). Counted by the plugin, not by ImGui frames:
+        // with a separate menu window the two run in different ImGui contexts.
+        const bool settingsOpen = m_uiTick - m_settingsTick <= 2;
         if (!settingsOpen) m_diagOpen = false;
 
         // Nothing while loading or out of game; nothing while the game is in
@@ -105,8 +109,8 @@ public:
         }
         if (m_settings.showOnIcons) SkillDPSUi::DrawIconLabels(m_icons, m_settings, m_uiScale);
         if (m_settings.showList) {
-            if (SkillDPSUi::DrawListPanel(m_list, m_settings, settingsOpen, m_forceListPos)) MarkDirty();
-            m_forceListPos = false;
+            SkillDPSUi::DrawListPanel(ctx()->Overlay, m_list, m_settings, settingsOpen);
+            if (!m_settings.showList) MarkDirty();   // closed from its gear menu
         }
         if (settingsOpen && m_diagOpen && m_diag.highlightSlots) SkillDPSUi::DrawSlotOutlines(m_tracker.Slots());
     }
@@ -117,7 +121,7 @@ public:
             PluginUi::Hint("This POEFixer version is too old for Skill DPS. Update POEFixer.");
             return;
         }
-        m_settingsFrame = ImGui::GetFrameCount();
+        m_settingsTick = m_uiTick;
         ImGui::PushID("SkillDPS");
         ImGui::Spacing();
         DrawSectionShow();
@@ -151,9 +155,9 @@ private:
     uint64_t m_areaCounter = ~uint64_t{0};
     Clock::time_point m_nextRefresh{};
 
-    int  m_settingsFrame = -10;
+    int64_t m_uiTick = 0;          // DrawUI calls so far
+    int64_t m_settingsTick = -10;  // m_uiTick when the settings tab was last drawn
     bool m_diagOpen = false;
-    bool m_forceListPos = false;   // "Reset position" pending for the list panel
     SkillDPSUi::DiagnosticsState m_diag;
 
     void BindImGui() const {
@@ -277,7 +281,9 @@ private:
             MarkDirtyAndRefresh();
         if (PluginUi::Check("DPS list panel", "list", &m_settings.showList,
                             "A small panel listing every evaluated skill with its number,\n"
-                            "including minions' skills. Drag it while this tab is open."))
+                            "including minions' skills. Drag it while this tab is open.\n"
+                            "Hover it for its gear menu (top-right corner): lock it, take it\n"
+                            "out of the game onto any screen, reset its position or close it."))
             MarkDirtyAndRefresh();
         if (PluginUi::Check("Include minions and totems", "minions", &m_settings.showMinions,
                             "Adds friendly minions' skills to the list and lets a totem skill\n"
@@ -351,24 +357,17 @@ private:
         PluginUi::Heading(ICON_FA_LIST, "DPS list panel",
                           "How the movable DPS list looks. While this tab is open the panel\n"
                           "can be dragged in game; its place is saved.\n"
+                          "Hover the panel for its gear menu (top-right corner): lock it, take\n"
+                          "it out of the game onto any screen, reset its position or close it.\n"
                           "Dimmed while \"DPS list panel\" is off.");
         ImGui::BeginDisabled(!m_settings.showList);
-        const PluginUi::LabelColumn col({"Size", "Background", "Position"});
+        const PluginUi::LabelColumn col({"Size", "Background"});
         if (PercentRow(col, "Size", "###listSize", &m_settings.listScale, 70, 180,
                        "Text size of the panel, relative to POEFixer's font size."))
             MarkDirty();
         if (PercentRow(col, "Background", "###listBg", &m_settings.listOpacity, 0, 100,
                        "Opacity of the panel background."))
             MarkDirty();
-        col.RowNoWidth("Position");
-        if (PluginUi::SubtleButton(ICON_FA_ROTATE_LEFT "  Reset position###resetPos")) {
-            m_settings.overlayX = 20.f;
-            m_settings.overlayY = 300.f;
-            m_forceListPos = true;   // the panel is placed there the next time it is drawn
-            MarkDirty();
-        }
-        PluginUi::Tip("Moves the panel back to the left side of the screen.\n"
-                      "To place it, drag the panel in game while this tab is open.");
         ImGui::EndDisabled();
         PluginUi::EndCard();
     }
